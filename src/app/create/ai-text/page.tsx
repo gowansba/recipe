@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { parseRecipeWithAI, ParsedRecipe, IngredientGroup } from '@/lib/ai-parser';
 
 export default function AITextInputPage() {
@@ -15,8 +16,17 @@ export default function AITextInputPage() {
   const [parsedRecipeDraft, setParsedRecipeDraft] = useState<ParsedRecipe | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [stage, setStage] = useState<"input" | "preview">("input");
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   const router = useRouter();
+
+  const handleDiscard = () => {
+    setShowDiscardDialog(true);
+  };
+
+  const confirmDiscard = () => {
+    router.push("/");
+  };
 
   const handleParseWithAI = async () => {
     setLoading(true);
@@ -127,12 +137,30 @@ export default function AITextInputPage() {
             </div>
           )}
         </CardContent>
-        <CardDescription className="p-6 pt-0">
+        <CardDescription className="p-6 pt-0 flex justify-between items-center">
           <Link href="/">
             <Button variant="outline">Back to Home</Button>
           </Link>
+          <Button variant="outline" onClick={handleDiscard}>Discard</Button>
         </CardDescription>
       </Card>
+
+      <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discard Recipe?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to discard this recipe? All unsaved changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={confirmDiscard}>Discard</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

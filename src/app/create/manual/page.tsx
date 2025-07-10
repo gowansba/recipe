@@ -29,6 +29,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ChevronsUpDown } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
 const allCategories = [
   { id: "breakfast", label: "Breakfast" },
@@ -55,6 +56,7 @@ export default function Home() {
   const [instructions, setInstructions] = useState<string[]>(["", "", "", "", ""]);
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -119,6 +121,14 @@ export default function Home() {
   };
   
   const router = useRouter();
+
+  const handleDiscard = () => {
+    setShowDiscardDialog(true);
+  };
+
+  const confirmDiscard = () => {
+    router.push("/");
+  };
 
   const handleCreateRecipe = () => {
     const newRecipe = {
@@ -299,6 +309,7 @@ export default function Home() {
         </CardContent>
         <CardFooter className="flex justify-between">
           {step > 1 && <Button variant="outline" onClick={handlePreviousStep}>Back</Button>}
+          <Button variant="outline" onClick={handleDiscard}>Discard</Button>
           {step < 3 ? (
             <Button onClick={handleNextStep} className="ml-auto">
               {step === 1 ? "Next: Add Instructions" : "Next: Review"}
@@ -310,6 +321,23 @@ export default function Home() {
           )}
         </CardFooter>
       </Card>
+
+      <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discard Recipe?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to discard this recipe? All unsaved changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={confirmDiscard}>Discard</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

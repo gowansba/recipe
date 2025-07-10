@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import Tesseract from 'tesseract.js';
 import { parseRecipeWithAI, ParsedRecipe } from '@/lib/ai-parser';
 
@@ -19,6 +20,7 @@ export default function UploadPhotoPage() {
   const [ocrText, setOcrText] = useState<string>(""); // Re-added for raw OCR display
   const [loading, setLoading] = useState<boolean>(false);
   const [stage, setStage] = useState<"upload" | "preview">("upload");
+  const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -49,6 +51,14 @@ export default function UploadPhotoPage() {
   };
 
   const router = useRouter();
+
+  const handleDiscard = () => {
+    setShowDiscardDialog(true);
+  };
+
+  const confirmDiscard = () => {
+    router.push("/");
+  };
 
   const handleEditManually = () => {
     console.log("Parsed recipe draft being saved to localStorage for manual edit:", parsedRecipeDraft);
@@ -139,12 +149,30 @@ export default function UploadPhotoPage() {
             </div>
           )}
         </CardContent>
-        <CardDescription className="p-6 pt-0">
+        <CardDescription className="p-6 pt-0 flex justify-between items-center">
           <Link href="/">
             <Button variant="outline">Back to Home</Button>
           </Link>
+          <Button variant="outline" onClick={handleDiscard}>Discard</Button>
         </CardDescription>
       </Card>
+
+      <Dialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discard Recipe?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to discard this recipe? All unsaved changes will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={confirmDiscard}>Discard</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
