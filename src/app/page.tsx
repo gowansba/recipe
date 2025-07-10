@@ -14,7 +14,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { parseRecipeWithAI, ParsedRecipe, IngredientGroup } from '@/lib/ai-parser';
-import { supabase } from '@/lib/supabase';
 import { User } from '@supabase/supabase-js';
 
 export default function Home() {
@@ -26,21 +25,38 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setLoadingUser(false);
-      if (event === 'SIGNED_OUT') {
-        router.push('/login');
-      }
-    });
+    // Import supabase client dynamically to avoid SSR issues
+    const loadSupabase = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        
+                 const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+           setUser(session?.user ?? null);
+           setLoadingUser(false);
+           if (event === 'SIGNED_OUT') {
+             router.push('/login');
+           }
+         });
 
-    return () => {
-      authListener.subscription.unsubscribe();
+        return () => {
+          authListener.subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Failed to load Supabase:', error);
+        setLoadingUser(false);
+      }
     };
+
+    loadSupabase();
   }, [router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
   };
 
   const handleSearch = async () => {
