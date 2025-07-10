@@ -49,14 +49,15 @@ export default function RecipeBook() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedRecipes = localStorage.getItem("allRecipes");
-      setRecipes(storedRecipes ? JSON.parse(storedRecipes) : []);
+      const parsedRecipes: Recipe[] = storedRecipes ? JSON.parse(storedRecipes) : [];
+      setRecipes(parsedRecipes);
 
       const searchQuery = localStorage.getItem("searchQuery");
       if (searchQuery) {
         const lowerCaseSearchTerm = searchQuery.toLowerCase();
-        const matchedRecipes = (storedRecipes ? JSON.parse(storedRecipes) : []).filter((recipe: any) => {
+        const matchedRecipes = parsedRecipes.filter((recipe: Recipe) => {
           const nameMatch = recipe.recipeName.toLowerCase().includes(lowerCaseSearchTerm);
-          const ingredientsMatch = recipe.ingredientGroups.some((group: any) =>
+          const ingredientsMatch = recipe.ingredientGroups.some((group: IngredientGroup) =>
             group.ingredients.some((ing: string) => ing.toLowerCase().includes(lowerCaseSearchTerm))
           );
           const categoriesMatch = recipe.categories.some((cat: string) => cat.toLowerCase().includes(lowerCaseSearchTerm));
@@ -65,7 +66,7 @@ export default function RecipeBook() {
         setFilteredRecipes(matchedRecipes);
         localStorage.removeItem("searchQuery"); // Clear search query after use
       } else {
-        setFilteredRecipes(storedRecipes ? JSON.parse(storedRecipes) : []);
+        setFilteredRecipes(parsedRecipes);
       }
     }
   }, []);

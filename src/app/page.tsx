@@ -13,20 +13,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { parseRecipeWithAI } from '@/lib/ai-parser';
+import { parseRecipeWithAI, ParsedRecipe, IngredientGroup } from '@/lib/ai-parser';
 import { supabase } from '@/lib/supabase';
+import { User } from '@supabase/supabase-js';
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showNoMatchDialog, setShowNoMatchDialog] = useState(false);
   const [loadingSearch, setLoadingSearch] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
       setLoadingUser(false);
     });
 
@@ -55,12 +56,12 @@ export default function Home() {
 
   const handleSearch = async () => {
     setLoadingSearch(true);
-    const allRecipes = JSON.parse(localStorage.getItem("allRecipes") || "[]");
+    const allRecipes: ParsedRecipe[] = JSON.parse(localStorage.getItem("allRecipes") || "[]");
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
 
-    const matchedRecipes = allRecipes.filter((recipe: any) => {
+    const matchedRecipes = allRecipes.filter((recipe: ParsedRecipe) => {
       const nameMatch = recipe.recipeName.toLowerCase().includes(lowerCaseSearchTerm);
-      const ingredientsMatch = recipe.ingredientGroups.some((group: any) =>
+      const ingredientsMatch = recipe.ingredientGroups.some((group: IngredientGroup) =>
         group.ingredients.some((ing: string) => ing.toLowerCase().includes(lowerCaseSearchTerm))
       );
       const categoriesMatch = recipe.categories.some((cat: string) => cat.toLowerCase().includes(lowerCaseSearchTerm));
