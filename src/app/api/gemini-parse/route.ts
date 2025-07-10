@@ -14,7 +14,9 @@ interface ParsedRecipe {
 }
 
 export async function POST(request: Request) {
+  console.log("Received request for Gemini parsing.");
   const { text } = await request.json();
+  console.log("Request body text:", text ? text.substring(0, 100) + '...' : 'No text');
 
   if (!text) {
     return NextResponse.json({ error: "No text provided" }, { status: 400 });
