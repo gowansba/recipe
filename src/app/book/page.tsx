@@ -19,9 +19,12 @@ interface IngredientGroup {
 }
 
 interface Recipe {
+  id?: string;
   recipeName: string;
+  recipe_name?: string;
   categories: string[];
-  ingredientGroups: IngredientGroup[];
+  ingredientGroups?: IngredientGroup[];
+  ingredient_groups?: IngredientGroup[];
   instructions: string[];
 }
 
@@ -45,30 +48,51 @@ export default function RecipeBook() {
   const [selectedLetter, setSelectedLetter] = useState("");
   const [recipeToDeleteIndex, setRecipeToDeleteIndex] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Helper function to normalize recipe data
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const normalizeRecipe = (recipe: any): Recipe => ({
+    id: recipe.id,
+    recipeName: recipe.recipe_name || recipe.recipeName,
+    recipe_name: recipe.recipe_name || recipe.recipeName,
+    categories: recipe.categories || [],
+    ingredientGroups: recipe.ingredient_groups || recipe.ingredientGroups || [],
+    ingredient_groups: recipe.ingredient_groups || recipe.ingredientGroups || [],
+    instructions: recipe.instructions || []
+  });
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedRecipes = localStorage.getItem("allRecipes");
-      const parsedRecipes: Recipe[] = storedRecipes ? JSON.parse(storedRecipes) : [];
-      setRecipes(parsedRecipes);
-
-      const searchQuery = localStorage.getItem("searchQuery");
-      if (searchQuery) {
-        const lowerCaseSearchTerm = searchQuery.toLowerCase();
-        const matchedRecipes = parsedRecipes.filter((recipe: Recipe) => {
-          const nameMatch = recipe.recipeName.toLowerCase().includes(lowerCaseSearchTerm);
-          const ingredientsMatch = recipe.ingredientGroups.some((group: IngredientGroup) =>
-            group.ingredients.some((ing: string) => ing.toLowerCase().includes(lowerCaseSearchTerm))
-          );
-          const categoriesMatch = recipe.categories.some((cat: string) => cat.toLowerCase().includes(lowerCaseSearchTerm));
-          return nameMatch || ingredientsMatch || categoriesMatch;
-        });
-        setFilteredRecipes(matchedRecipes);
-        localStorage.removeItem("searchQuery"); // Clear search query after use
-      } else {
+    const loadRecipes = async () => {
+      try {
+        const { getUserRecipes } = await import('@/lib/recipes');
+        const result = await getUserRecipes();
+        
+        if (result.success && result.data) {
+          const normalizedRecipes = result.data.map(normalizeRecipe);
+          setRecipes(normalizedRecipes);
+          setFilteredRecipes(normalizedRecipes);
+        } else {
+          console.error('Error loading recipes:', result.error);
+          // Fallback to localStorage for backward compatibility
+          const storedRecipes = localStorage.getItem("allRecipes");
+          const parsedRecipes: Recipe[] = storedRecipes ? JSON.parse(storedRecipes).map(normalizeRecipe) : [];
+          setRecipes(parsedRecipes);
+          setFilteredRecipes(parsedRecipes);
+        }
+      } catch (error) {
+        console.error('Error loading recipes:', error);
+        // Fallback to localStorage
+        const storedRecipes = localStorage.getItem("allRecipes");
+        const parsedRecipes: Recipe[] = storedRecipes ? JSON.parse(storedRecipes).map(normalizeRecipe) : [];
+        setRecipes(parsedRecipes);
         setFilteredRecipes(parsedRecipes);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    loadRecipes();
   }, []);
 
   useEffect(() => {
@@ -93,12 +117,34 @@ export default function RecipeBook() {
     setShowDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (recipeToDeleteIndex !== null) {
-      console.log("Confirming delete for recipe at index:", recipeToDeleteIndex);
-      const updatedRecipes = recipes.filter((_, index) => index !== recipeToDeleteIndex);
-      setRecipes(updatedRecipes);
-      localStorage.setItem("allRecipes", JSON.stringify(updatedRecipes));
+      const recipeToDelete = recipes[recipeToDeleteIndex];
+      
+      if (recipeToDelete.id) {
+        try {
+          const { deleteRecipe } = await import('@/lib/recipes');
+          const result = await deleteRecipe(recipeToDelete.id);
+          
+          if (result.success) {
+            const updatedRecipes = recipes.filter((_, index) => index !== recipeToDeleteIndex);
+            setRecipes(updatedRecipes);
+            setFilteredRecipes(updatedRecipes);
+          } else {
+            alert(`Error deleting recipe: ${result.error}`);
+          }
+        } catch (error) {
+          console.error('Error deleting recipe:', error);
+          alert('Failed to delete recipe. Please try again.');
+        }
+      } else {
+        // Fallback to localStorage for recipes without IDs
+        const updatedRecipes = recipes.filter((_, index) => index !== recipeToDeleteIndex);
+        setRecipes(updatedRecipes);
+        setFilteredRecipes(updatedRecipes);
+        localStorage.setItem("allRecipes", JSON.stringify(updatedRecipes));
+      }
+      
       setShowDeleteDialog(false);
       setRecipeToDeleteIndex(null);
     }
@@ -117,7 +163,7 @@ export default function RecipeBook() {
         <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 10px;">${recipeToPrint.recipeName}</h2>
         <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Categories: ${recipeToPrint.categories.join(', ')}</p>
         <h3 style="font-size: 18px; font-weight: medium; margin-bottom: 8px;">Ingredients:</h3>
-        ${recipeToPrint.ingredientGroups.map(group => `
+        ${(recipeToPrint.ingredientGroups || []).map(group => `
           <div style="margin-left: 16px; margin-bottom: 8px;">
             <h4 style="font-weight: 600;">${group.name}</h4>
             <ul style="list-style-type: disc; padding-left: 20px;">
@@ -176,7 +222,11 @@ export default function RecipeBook() {
         ))}
       </div>
 
-      {filteredRecipes.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center items-center h-40">
+          <div className="text-lg text-gray-600">Loading your recipes...</div>
+        </div>
+      ) : filteredRecipes.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Cover Page */}
           <div className="demoPage bg-pink-100 flex items-center justify-center p-8">
@@ -209,7 +259,7 @@ export default function RecipeBook() {
               <h2 className="text-2xl font-semibold mb-2">{recipe.recipeName}</h2>
               <p className="text-sm text-gray-500 mb-4">Categories: {recipe.categories.join(', ')}</p>
               <h3 className="text-lg font-medium mb-2">Ingredients:</h3>
-              {recipe.ingredientGroups.map((group, groupIndex) => (
+              {(recipe.ingredientGroups || []).map((group, groupIndex) => (
                 <div key={groupIndex} className="ml-4 mb-2">
                   <h4 className="font-semibold">{group.name}</h4>
                   <ul className="list-disc pl-5">

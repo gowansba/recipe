@@ -52,12 +52,32 @@ export default function AITextInputPage() {
     console.log("Revising with AI:", parsedRecipeDraft);
   };
 
-  const handlePublish = () => {
-    const existingRecipes = JSON.parse(localStorage.getItem("allRecipes") || "[]");
-    localStorage.setItem("allRecipes", JSON.stringify([...existingRecipes, parsedRecipeDraft]));
+  const handlePublish = async () => {
+    if (!parsedRecipeDraft) return;
+    
+    setLoading(true);
 
-    alert("Recipe published to your recipe book!");
-    router.push("/book");
+    try {
+      const { createRecipe } = await import('@/lib/recipes');
+      const result = await createRecipe({
+        recipeName: parsedRecipeDraft.recipeName,
+        categories: parsedRecipeDraft.categories,
+        instructions: parsedRecipeDraft.instructions,
+        ingredientGroups: parsedRecipeDraft.ingredientGroups
+      });
+      
+      if (result.success) {
+        alert("Recipe published to your recipe book!");
+        router.push("/book");
+      } else {
+        alert(`Error publishing recipe: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error publishing recipe:', error);
+      alert('Failed to publish recipe. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

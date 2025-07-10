@@ -57,6 +57,7 @@ export default function Home() {
 
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -130,7 +131,7 @@ export default function Home() {
     router.push("/");
   };
 
-  const handleCreateRecipe = () => {
+  const handleCreateRecipe = async () => {
     const newRecipe = {
       recipeName,
       categories: selectedCategories,
@@ -138,20 +139,39 @@ export default function Home() {
       instructions,
     };
 
-    const updatedRecipes = JSON.parse(localStorage.getItem("allRecipes") || "[]");
+    setLoading(true);
 
-    if (editingIndex !== null) {
-      // Editing existing recipe
-      updatedRecipes[editingIndex] = newRecipe;
-      alert("Recipe updated! Redirecting to your recipe book.");
-    } else {
-      // Creating new recipe
-      updatedRecipes.push(newRecipe);
-      alert("Recipe created! Redirecting to your recipe book.");
+    try {
+      const { createRecipe } = await import('@/lib/recipes');
+      
+      if (editingIndex !== null) {
+        // Editing existing recipe - for now we'll implement this later
+        // For now, create as new recipe
+        const result = await createRecipe(newRecipe);
+        
+        if (result.success) {
+          alert("Recipe updated! Redirecting to your recipe book.");
+          router.push("/book");
+        } else {
+          alert(`Error updating recipe: ${result.error}`);
+        }
+      } else {
+        // Creating new recipe
+        const result = await createRecipe(newRecipe);
+        
+        if (result.success) {
+          alert("Recipe created! Redirecting to your recipe book.");
+          router.push("/book");
+        } else {
+          alert(`Error creating recipe: ${result.error}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      alert('Failed to save recipe. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    localStorage.setItem("allRecipes", JSON.stringify(updatedRecipes));
-    router.push("/book");
   };
 
   return (
@@ -315,8 +335,8 @@ export default function Home() {
               {step === 1 ? "Next: Add Instructions" : "Next: Review"}
             </Button>
           ) : (
-            <Button onClick={handleCreateRecipe} className="ml-auto">
-              {editingIndex !== null ? "Save Changes" : "Create Recipe"}
+            <Button onClick={handleCreateRecipe} disabled={loading} className="ml-auto">
+              {loading ? "Saving..." : (editingIndex !== null ? "Save Changes" : "Create Recipe")}
             </Button>
           )}
         </CardFooter>
