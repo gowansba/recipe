@@ -9,12 +9,6 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
-  postcss: {
-    plugins: {
-      tailwindcss: {},
-      autoprefixer: {},
-    },
-  },
 };
 
 export default nextConfig;
