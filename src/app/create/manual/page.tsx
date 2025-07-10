@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,6 +54,35 @@ export default function Home() {
   const [newIngredients, setNewIngredients] = useState<{ [key: number]: string }>({});
   const [instructions, setInstructions] = useState<string[]>(["", "", "", "", ""]);
 
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const draftRecipe = JSON.parse(localStorage.getItem("draftRecipe") || "null");
+      const editingRecipe = JSON.parse(localStorage.getItem("editingRecipe") || "null");
+
+      if (draftRecipe) {
+        setRecipeName(draftRecipe.recipeName || "");
+        setSelectedCategories(
+          (draftRecipe.categories || []).map((cat: string) => {
+            const matchedCategory = allCategories.find(ac => ac.id === cat.toLowerCase() || ac.label.toLowerCase() === cat.toLowerCase());
+            return matchedCategory ? matchedCategory.label : cat; // Use label for display
+          })
+        );
+        setIngredientGroups(draftRecipe.ingredientGroups || []);
+        setInstructions(draftRecipe.instructions || ["", "", "", "", ""]);
+        localStorage.removeItem("draftRecipe"); // Clear it after use
+      } else if (editingRecipe) {
+        setRecipeName(editingRecipe.recipeName || "");
+        setSelectedCategories(editingRecipe.categories || []);
+        setIngredientGroups(editingRecipe.ingredientGroups || []);
+        setInstructions(editingRecipe.instructions || ["", "", "", "", ""]);
+        setEditingIndex(editingRecipe.originalIndex);
+        localStorage.removeItem("editingRecipe"); // Clear it after use
+      }
+    }
+  }, []);
+
   const handleAddGroup = () => {
     if (newGroupName.trim() !== "") {
       setIngredientGroups([...ingredientGroups, { name: newGroupName.trim(), ingredients: [] }]);
@@ -98,11 +127,20 @@ export default function Home() {
       ingredientGroups,
       instructions,
     };
-    // For now, store in a global array (will be replaced by Supabase later)
-    const existingRecipes = JSON.parse(localStorage.getItem("allRecipes") || "[]");
-    localStorage.setItem("allRecipes", JSON.stringify([...existingRecipes, newRecipe]));
 
-    alert("Recipe created! Redirecting to your recipe book.");
+    const updatedRecipes = JSON.parse(localStorage.getItem("allRecipes") || "[]");
+
+    if (editingIndex !== null) {
+      // Editing existing recipe
+      updatedRecipes[editingIndex] = newRecipe;
+      alert("Recipe updated! Redirecting to your recipe book.");
+    } else {
+      // Creating new recipe
+      updatedRecipes.push(newRecipe);
+      alert("Recipe created! Redirecting to your recipe book.");
+    }
+
+    localStorage.setItem("allRecipes", JSON.stringify(updatedRecipes));
     router.push("/book");
   };
 
@@ -266,7 +304,9 @@ export default function Home() {
               {step === 1 ? "Next: Add Instructions" : "Next: Review"}
             </Button>
           ) : (
-            <Button onClick={handleCreateRecipe} className="ml-auto">Create Recipe</Button>
+            <Button onClick={handleCreateRecipe} className="ml-auto">
+              {editingIndex !== null ? "Save Changes" : "Create Recipe"}
+            </Button>
           )}
         </CardFooter>
       </Card>
