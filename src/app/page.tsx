@@ -26,32 +26,21 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setLoadingUser(false);
+      if (event === 'SIGNED_OUT') {
+        router.push('/login');
+      }
     });
 
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
-  useEffect(() => {
-    if (!loadingUser && !user) {
-      router.push("/login");
-    }
-  }, [loadingUser, user, router]);
-
-  if (loadingUser) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-24">
-        <p>Loading user session...</p>
-      </main>
-    );
-  }
-
-  if (!user) {
-    return null; // Render nothing while redirecting
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
   };
 
   const handleSearch = async () => {
@@ -94,7 +83,23 @@ export default function Home() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
+    <main className="flex min-h-screen flex-col items-center justify-center p-24 relative">
+      <div className="absolute top-8 right-8">
+        {loadingUser ? (
+          <p>...</p>
+        ) : user ? (
+          <div className="flex items-center gap-4">
+            <p>{user.email}</p>
+            <Button variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
+          </div>
+        ) : (
+          <Link href="/login">
+            <Button>Login</Button>
+          </Link>
+        )}
+      </div>
       <div className="flex flex-col items-center gap-8">
         <h1 className="text-4xl font-bold">Welcome to your Recipe Book</h1>
         <div className="flex w-full max-w-md items-center space-x-2 mb-4">
