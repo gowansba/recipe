@@ -50,6 +50,23 @@ export default function RecipeBook() {
     if (typeof window !== 'undefined') {
       const storedRecipes = localStorage.getItem("allRecipes");
       setRecipes(storedRecipes ? JSON.parse(storedRecipes) : []);
+
+      const searchQuery = localStorage.getItem("searchQuery");
+      if (searchQuery) {
+        const lowerCaseSearchTerm = searchQuery.toLowerCase();
+        const matchedRecipes = (storedRecipes ? JSON.parse(storedRecipes) : []).filter((recipe: any) => {
+          const nameMatch = recipe.recipeName.toLowerCase().includes(lowerCaseSearchTerm);
+          const ingredientsMatch = recipe.ingredientGroups.some((group: any) =>
+            group.ingredients.some((ing: string) => ing.toLowerCase().includes(lowerCaseSearchTerm))
+          );
+          const categoriesMatch = recipe.categories.some((cat: string) => cat.toLowerCase().includes(lowerCaseSearchTerm));
+          return nameMatch || ingredientsMatch || categoriesMatch;
+        });
+        setFilteredRecipes(matchedRecipes);
+        localStorage.removeItem("searchQuery"); // Clear search query after use
+      } else {
+        setFilteredRecipes(storedRecipes ? JSON.parse(storedRecipes) : []);
+      }
     }
   }, []);
 
