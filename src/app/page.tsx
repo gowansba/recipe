@@ -61,24 +61,62 @@ export default function Home() {
 
   const handleSearch = async () => {
     setLoadingSearch(true);
-    const allRecipes: ParsedRecipe[] = JSON.parse(localStorage.getItem("allRecipes") || "[]");
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
+    console.log(`Searching for: ${searchTerm}`);
 
-    const matchedRecipes = allRecipes.filter((recipe: ParsedRecipe) => {
-      const nameMatch = recipe.recipeName.toLowerCase().includes(lowerCaseSearchTerm);
-      const ingredientsMatch = recipe.ingredientGroups.some((group: IngredientGroup) =>
-        group.ingredients.some((ing: string) => ing.toLowerCase().includes(lowerCaseSearchTerm))
-      );
-      const categoriesMatch = recipe.categories.some((cat: string) => cat.toLowerCase().includes(lowerCaseSearchTerm));
-      return nameMatch || ingredientsMatch || categoriesMatch;
-    });
+    if (!user) {
+      router.push("/login");
+      return;
+    }
 
-    if (matchedRecipes.length > 0) {
-      localStorage.setItem("filteredRecipes", JSON.stringify(matchedRecipes));
-      router.push("/book");
-    } else {
+    try {
+      // Step 1: Use AI to extract keywords from the natural language search term
+      const aiResponse = await fetch("/api/gemini-search-parse", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text: searchTerm }),
+      });
+
+      const aiResponseBody = await aiResponse.json();
+      console.log("AI keyword extraction response:", aiResponseBody);
+
+      if (!aiResponse.ok) {
+        console.error("AI keyword extraction API returned an error:", aiResponseBody);
+        throw new Error(aiResponseBody.error || "Failed to extract keywords with AI");
+      }
+
+      const { keywords } = aiResponseBody;
+      console.log("Extracted keywords:", keywords);
+
+      // Step 2: Use extracted keywords to search Supabase
+      const supabaseSearchTerm = keywords.join(" "); // Join keywords for Supabase search
+      const supabaseResponse = await fetch("/api/search-recipes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ searchTerm: supabaseSearchTerm, userId: user.id }),
+      });
+
+      if (!supabaseResponse.ok) {
+        throw new Error("Failed to search recipes in Supabase");
+      }
+
+      const matchedRecipes = await supabaseResponse.json();
+      console.log("Matched recipes from Supabase:", matchedRecipes);
+
+      if (matchedRecipes.length > 0) {
+        localStorage.setItem("filteredRecipes", JSON.stringify(matchedRecipes));
+        router.push("/book");
+      } else {
+        setShowNoMatchDialog(true);
+      }
+    } catch (error) {
+      console.error("Failed to perform intelligent search:", error);
       setShowNoMatchDialog(true);
     }
+
     setLoadingSearch(false);
   };
 
