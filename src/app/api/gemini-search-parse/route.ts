@@ -57,7 +57,7 @@ export async function POST(request: Request) {
         console.log(`Sending prompt to Gemini (Attempt ${i + 1})`);
         result = await model.generateContent(prompt);
         break; // Success, exit loop
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error.status === 503 && i < maxRetries - 1) {
           console.warn(`Gemini API is overloaded. Retrying in ${i + 1} second(s)...`);
           await delay((i + 1) * 1000);

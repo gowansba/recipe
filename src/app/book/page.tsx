@@ -5,13 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Trash2, Edit, Printer, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
 interface IngredientGroup {
@@ -40,7 +34,7 @@ const allCategories = [
   { id: "sauce", label: "Sauce" },
 ];
 
-const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
 
 export default function RecipeBook() {
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]); // Stores ALL recipes from Supabase
@@ -71,7 +65,7 @@ export default function RecipeBook() {
 
     if (selectedCategory !== "all") {
       tempRecipes = tempRecipes.filter((recipe) => {
-        const includesCategory = recipe.categories.includes(selectedCategory);
+        const includesCategory = recipe.categories.map(cat => cat.toLowerCase()).includes(selectedCategory.toLowerCase());
         console.log(`Recipe: ${recipe.recipeName}, Categories: ${recipe.categories}, Includes ${selectedCategory}: ${includesCategory}`);
         return includesCategory;
       });
