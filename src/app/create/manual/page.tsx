@@ -54,10 +54,11 @@ export default function Home() {
   const [newGroupName, setNewGroupName] = useState("");
   const [newIngredients, setNewIngredients] = useState<{ [key: number]: string }>({});
   const [instructions, setInstructions] = useState<string[]>(["", "", "", "", ""]);
-
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
+
+  
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -80,7 +81,7 @@ export default function Home() {
         setSelectedCategories(editingRecipe.categories || []);
         setIngredientGroups(editingRecipe.ingredientGroups || []);
         setInstructions(editingRecipe.instructions || ["", "", "", "", ""]);
-        setEditingIndex(editingRecipe.originalIndex);
+        setEditingRecipeId(editingRecipe.id);
         localStorage.removeItem("editingRecipe"); // Clear it after use
       }
     }
@@ -144,7 +145,7 @@ export default function Home() {
     try {
       const { createRecipe } = await import('@/lib/recipes');
       
-      if (editingIndex !== null) {
+      if (editingRecipeId) {
         // Editing existing recipe - for now we'll implement this later
         // For now, create as new recipe
         const result = await createRecipe(newRecipe);
@@ -336,7 +337,7 @@ export default function Home() {
             </Button>
           ) : (
             <Button onClick={handleCreateRecipe} disabled={loading} className="ml-auto">
-              {loading ? "Saving..." : (editingIndex !== null ? "Save Changes" : "Create Recipe")}
+              {loading ? "Saving..." : (editingRecipeId ? "Save Changes" : "Create Recipe")}
             </Button>
           )}
         </CardFooter>

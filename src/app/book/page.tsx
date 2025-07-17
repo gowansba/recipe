@@ -36,6 +36,8 @@ const allCategories = [
 
 
 
+import { User } from '@supabase/supabase-js';
+
 export default function RecipeBook() {
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]); // Stores ALL recipes from Supabase
   const [displayedRecipes, setDisplayedRecipes] = useState<Recipe[]>([]); // Recipes currently shown
@@ -46,6 +48,26 @@ export default function RecipeBook() {
   const [loading, setLoading] = useState(true);
   const [currentRecipeIndex, setCurrentRecipeIndex] = useState(0);
   const [showCoverPage, setShowCoverPage] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const loadSupabase = async () => {
+      try {
+        const { supabase } = await import('@/lib/supabase');
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+          setUser(session?.user ?? null);
+        });
+
+        return () => {
+          authListener.subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Failed to load Supabase:', error);
+      }
+    };
+
+    loadSupabase();
+  }, []);
 
   // Helper function to normalize recipe data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,11 +136,11 @@ export default function RecipeBook() {
           } catch (e) {
             console.error("Error parsing filtered recipes from localStorage:", e);
             setDisplayedRecipes(fetchedRecipes); // Fallback to all recipes if parsing fails
-            setShowCoverPage(true); // Show cover page if error
+            setShowCoverPage(fetchedRecipes.length === 0); // Show cover page if no recipes
           }
         } else {
           setDisplayedRecipes(fetchedRecipes); // Display all recipes if no initial filter
-          setShowCoverPage(true); // Always show cover page if no search was performed
+          setShowCoverPage(fetchedRecipes.length === 0); // Show cover page if no recipes
         }
 
       } catch (error) {
@@ -134,8 +156,10 @@ export default function RecipeBook() {
       }
     };
 
-    loadInitialRecipes();
-  }, [normalizeRecipe, applyFilters]); // Runs only once on mount
+    if (user) {
+      loadInitialRecipes();
+    }
+  }, [user, normalizeRecipe, applyFilters]); // Runs when user state changes
 
   // Effect to re-apply filters when category or letter changes
   useEffect(() => {
@@ -144,8 +168,13 @@ export default function RecipeBook() {
       const filtered = applyFilters(allRecipes);
       setDisplayedRecipes(filtered);
       setCurrentRecipeIndex(0); // Reset to first recipe in new filtered list
-      if (filtered.length > 0) {
-        setShowCoverPage(false); // Show recipe if filters yield results
+      // Only show recipe page if a specific category is selected (not 'all') or if there are search results
+      if (selectedCategory !== "all" && filtered.length > 0) {
+        setShowCoverPage(false);
+      } else if (localStorage.getItem("filteredRecipes")) { // If coming from a search
+        setShowCoverPage(false);
+      } else {
+        setShowCoverPage(filtered.length === 0);
       }
     }
   }, [selectedCategory, selectedLetter, allRecipes, applyFilters, loading]); // Re-run when filters or allRecipes change

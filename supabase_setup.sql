@@ -74,29 +74,37 @@ ALTER TABLE public.recipes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ingredient_groups ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.profiles;
 CREATE POLICY "Users can view their own profile" ON public.profiles
     FOR SELECT USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 CREATE POLICY "Users can update their own profile" ON public.profiles
     FOR UPDATE USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.profiles;
 CREATE POLICY "Users can insert their own profile" ON public.profiles
     FOR INSERT WITH CHECK (auth.uid() = id);
 
 -- Recipes policies
+DROP POLICY IF EXISTS "Users can view their own recipes" ON public.recipes;
 CREATE POLICY "Users can view their own recipes" ON public.recipes
     FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own recipes" ON public.recipes;
 CREATE POLICY "Users can insert their own recipes" ON public.recipes
     FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update their own recipes" ON public.recipes;
 CREATE POLICY "Users can update their own recipes" ON public.recipes
     FOR UPDATE USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete their own recipes" ON public.recipes;
 CREATE POLICY "Users can delete their own recipes" ON public.recipes
     FOR DELETE USING (auth.uid() = user_id);
 
 -- Ingredient groups policies
+DROP POLICY IF EXISTS "Users can view ingredient groups for their recipes" ON public.ingredient_groups;
 CREATE POLICY "Users can view ingredient groups for their recipes" ON public.ingredient_groups
     FOR SELECT USING (
         EXISTS (
@@ -106,6 +114,7 @@ CREATE POLICY "Users can view ingredient groups for their recipes" ON public.ing
         )
     );
 
+DROP POLICY IF EXISTS "Users can insert ingredient groups for their recipes" ON public.ingredient_groups;
 CREATE POLICY "Users can insert ingredient groups for their recipes" ON public.ingredient_groups
     FOR INSERT WITH CHECK (
         EXISTS (
@@ -115,6 +124,7 @@ CREATE POLICY "Users can insert ingredient groups for their recipes" ON public.i
         )
     );
 
+DROP POLICY IF EXISTS "Users can update ingredient groups for their recipes" ON public.ingredient_groups;
 CREATE POLICY "Users can update ingredient groups for their recipes" ON public.ingredient_groups
     FOR UPDATE USING (
         EXISTS (
@@ -124,6 +134,7 @@ CREATE POLICY "Users can update ingredient groups for their recipes" ON public.i
         )
     );
 
+DROP POLICY IF EXISTS "Users can delete ingredient groups for their recipes" ON public.ingredient_groups;
 CREATE POLICY "Users can delete ingredient groups for their recipes" ON public.ingredient_groups
     FOR DELETE USING (
         EXISTS (
@@ -176,15 +187,18 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS handle_updated_at_profiles ON public.profiles;
 CREATE TRIGGER handle_updated_at_profiles
     BEFORE UPDATE ON public.profiles
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS handle_updated_at_recipes ON public.recipes;
 CREATE TRIGGER handle_updated_at_recipes
     BEFORE UPDATE ON public.recipes
     FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- Trigger to update search vector
+DROP TRIGGER IF EXISTS update_recipe_search_vector_trigger ON public.recipes;
 CREATE TRIGGER update_recipe_search_vector_trigger
     BEFORE INSERT OR UPDATE ON public.recipes
     FOR EACH ROW EXECUTE FUNCTION public.update_recipe_search_vector();
@@ -377,4 +391,4 @@ VALUES
 -- 2. Update your app to use Supabase instead of localStorage
 -- 3. Test the authentication and recipe CRUD operations
 -- 
--- ============================================================================ 
+-- ============================================================================

@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { parseRecipeWithAI, ParsedRecipe, IngredientGroup } from '@/lib/ai-parser';
+import { parseRecipeWithAI } from '@/lib/ai-parser';
 import { User } from '@supabase/supabase-js';
 
 export default function Home() {
